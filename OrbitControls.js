@@ -9,7 +9,7 @@ import {
 	Plane,
 	Ray,
 	MathUtils
-} from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js'; // CORRECTED: Direct CDN path
+} from 'three';
 
 /**
  * Fires when the camera has been transformed by the controls.
@@ -445,7 +445,4 @@ class OrbitControls extends Controls {
 		this._onTouchMove = onTouchMove.bind( this );
 
 		this._onMouseDown = onMouseDown.bind( this );
-		this._onMouseMove = onMouseMove.bind( this );
-
-		this._interceptControlDown = interceptControlDown.bind( this );
 		t
