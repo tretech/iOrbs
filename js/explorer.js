@@ -1,9 +1,9 @@
 // js/explorer.js
 // This file contains all logic specific to the Explorer Mode.
 
-// Import CSS2DRenderer and OrbitControls using relative paths
-import { CSS2DRenderer, CSS2DObject } from "./CSS2DRenderer (1).js";
-import { OrbitControls } from "./OrbitControls (1).js";
+// Import CSS2DRenderer and OrbitControls using relative paths to the parent (root) directory
+import { CSS2DRenderer, CSS2DObject } from "../CSS2DRenderer (1).js"; // CORRECTED: Now looks in parent directory
+import { OrbitControls } from "../OrbitControls (1).js"; // CORRECTED: Now looks in parent directory
 
 let _db;
 let _appId;
@@ -222,7 +222,8 @@ async function fetchTerms() {
         termsData = fetchedTerms; // Update global termsData
         console.log("Fetched terms:", termsData.length, "terms.");
         return termsData;
-    } catch (error) {
+    }
+    catch (error) {
         console.error("Error fetching terms:", error);
         return [];
     }
