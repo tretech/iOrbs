@@ -1,8 +1,8 @@
 // js/explorer.js
 // This file contains all logic specific to the Explorer Mode.
 
-import { CSS2DRenderer, CSS2DObject } from "./CSS2DRenderer (1).js";
-import { OrbitControls } from "./OrbitControls (1).js";
+import { CSS2DRenderer, CSS2DObject } from "./CSS2DRenderer.js";
+import { OrbitControls } from "./OrbitControls.js";
 
 let _db;
 let _appId;
