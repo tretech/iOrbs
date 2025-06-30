@@ -1,0 +1,260 @@
+/* css/style.css */
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #1a202c; /* Dark background */
+    color: #e2e8f0; /* Light text */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* Header and Navigation */
+.header {
+    background-color: #2d3748;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 1.5rem; /* px-6 equivalent */
+    padding-right: 1.5rem; /* px-6 equivalent */
+}
+
+.nav-button {
+    padding: 0.75rem 1.5rem;
+    margin: 0 0.5rem;
+    border-radius: 0.5rem;
+    background-color: #4a5568;
+    color: #edf2f7;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.nav-button:hover {
+    background-color: #636b6f;
+}
+
+/* Content Area */
+.content-area {
+    flex-grow: 1;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.rounded-card {
+    background-color: #2d3748;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    width: 100%;
+}
+
+/* Form Specific Styles */
+.definition-block {
+    background-color: #3b4556; /* Slightly lighter gray for definition blocks */
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #4a5568;
+}
+
+/* Input/Textarea common styles */
+.w-full.bg-gray-600.border.border-gray-500.rounded-md.px-3.py-2.text-white.focus\:outline-none.focus\:ring-1.focus\:ring-cyan-500 {
+    background-color: #4a5568;
+    border-color: #636b6f;
+    color: #edf2f7;
+}
+
+.w-full.bg-gray-600.border.border-gray-500.rounded-md.px-3.py-2.text-white.focus\:outline-none.focus\:ring-1.focus\:ring-cyan-500:focus {
+    outline: none;
+    ring-color: #06b6d4; /* cyan-500 */
+    border-color: #06b6d4;
+}
+
+/* Spinner for save button */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Specific styles for Explorer Mode content to ensure the canvas is visible */
+.explorer-content-wrapper {
+    width: 100%;
+    height: calc(100vh - 8rem); /* Adjust height to account for header and status bar */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 1rem;
+}
+
+#orb-container {
+    width: 100%;
+    height: 70vh; /* Make canvas container take a significant portion of height */
+    max-height: 500px; /* Max height for larger screens */
+    min-height: 300px; /* Min height for smaller screens */
+    background-color: #0d1117; /* Dark background for the 3D space */
+    border-radius: 0.75rem; /* rounded-lg */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-bottom: 1rem; /* Space below canvas */
+}
+
+#orb-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.75rem; /* Match parent container's rounded corners */
+}
+
+.command-line-input {
+    background-color: #2d3748;
+    border: 1px solid #4a5568;
+    color: #edf2f7;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 600px;
+    margin-top: 1rem;
+}
+/* Styles for definition panel and mouse glow from index (2).html */
+.ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.definition-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #00ffff;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 600px;
+    color: #fff;
+    opacity: 0;
+    transition: all 0.5s ease-out;
+    pointer-events: auto;
+    box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.definition-panel.active {
+    opacity: 1;
+}
+
+.term-title {
+    font-size: 2.8em;
+    font-weight: bold;
+    color: #00ffff;
+    text-align: center;
+    margin-bottom: 25px;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
+}
+
+.definition-text {
+    font-size: 1.3em;
+    line-height: 1.7;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.definition-tags {
+    font-size: 0.9em;
+    color: #888;
+    margin-top: -15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.definition-counter {
+    text-align: center;
+    color: #00ffff;
+    font-size: 1em;
+    margin-bottom: 20px;
+    opacity: 0.8;
+}
+
+.controls {
+    text-align: center;
+    color: #aaa;
+    font-size: 1em;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.mouse-glow {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.9) 0%, rgba(0, 255, 255, 0) 80%);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s ease-out, width 0.1s ease, height 0.1s ease;
+    z-index: 99;
+    filter: blur(5px);
+}
+
+/* Message box styles (for showMessageBox) */
+.message-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #ffcc00;
+    border-radius: 10px;
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 0 30px rgba(255, 204, 0, 0.5);
+    max-width: 80%;
+}
+
+.message-box button {
+    background-color: #00ffff;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 15px;
+    transition: background-color 0.3s ease;
+}
+
+.message-box button:hover {
+    background-color: #00e6e6;
+}
