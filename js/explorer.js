@@ -1,6 +1,7 @@
 // js/explorer.js
 // This file contains all logic specific to the Explorer Mode.
 
+// Import CSS2DRenderer and OrbitControls using relative paths
 import { CSS2DRenderer, CSS2DObject } from "./CSS2DRenderer (1).js";
 import { OrbitControls } from "./OrbitControls (1).js";
 
@@ -9,6 +10,7 @@ let _appId;
 let _collection;
 let _query;
 let _getDocs;
+let _THREE; // To hold the Three.js object passed as parameter
 
 // Three.js variables
 let scene, camera, renderer, cssRenderer; // cssRenderer added
@@ -27,6 +29,11 @@ let isOrbFocused = false; // New state to track if an orb is focused
 // Mouse interaction variables for glow
 let mouseGlow;
 
+// Placeholder for TWEEN.js (if not loaded globally)
+// If TWEEN.js is needed for smooth animations, it should be loaded via a CDN in index.html
+// For now, we'll implement simple direct movements or rely on CSS transitions where possible.
+let TWEEN = window.TWEEN || { Tween: class { to() { return this; } easing() { return this; } start() {} } }; // Fallback TWEEN
+
 /**
  * Initializes the Explorer module with Firebase instances and relevant functions.
  * @param {object} db - Firestore database instance.
@@ -34,13 +41,15 @@ let mouseGlow;
  * @param {function} collectionFn - The Firestore 'collection' function.
  * @param {function} queryFn - The Firestore 'query' function.
  * @param {function} getDocsFn - The Firestore 'getDocs' function.
+ * @param {object} THREE_lib - The Three.js library object passed from index.html.
  */
-export function initExplorer(db, appId, collectionFn, queryFn, getDocsFn) {
+export function initExplorer(db, appId, collectionFn, queryFn, getDocsFn, THREE_lib) {
     _db = db;
     _appId = appId;
     _collection = collectionFn;
     _query = queryFn;
     _getDocs = getDocsFn;
+    _THREE = THREE_lib; // Assign the passed Three.js library
 
     console.log("Explorer module initialized. App ID:", _appId);
 
@@ -51,6 +60,13 @@ export function initExplorer(db, appId, collectionFn, queryFn, getDocsFn) {
 
     if (!orbDisplayArea || !commandInput || !mouseGlow) {
         console.error("Explorer UI elements not found. Cannot initialize Explorer Mode.");
+        return;
+    }
+    
+    // Check if Three.js library was successfully passed
+    if (!_THREE) {
+        console.error("THREE.js library not initialized or passed to Explorer. Cannot render orbs.");
+        commandInput.placeholder = "Error: Three.js not loaded. Check console.";
         return;
     }
 
@@ -101,15 +117,15 @@ export function initExplorer(db, appId, collectionFn, queryFn, getDocsFn) {
  */
 function initThreeJS(container) {
     // Scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a202c); // Dark background
+    scene = new _THREE.Scene();
+    scene.background = new _THREE.Color(0x1a202c); // Dark background
 
     // Camera
-    camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera = new _THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.z = 10; // Position camera back
 
     // WebGL Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha:true for transparency
+    renderer = new _THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha:true for transparency
     renderer.setSize(container.clientWidth, container.clientHeight);
     container.appendChild(renderer.domElement);
 
@@ -131,14 +147,14 @@ function initThreeJS(container) {
     controls.maxDistance = 50;
 
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+    const ambientLight = new _THREE.AmbientLight(0x404040); // Soft white light
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7); // Brighter directional light
+    const directionalLight = new _THREE.DirectionalLight(0xffffff, 0.7); // Brighter directional light
     directionalLight.position.set(0, 1, 1).normalize();
     scene.add(directionalLight);
 
     // Orb group for easy rotation/manipulation of all orbs
-    orbGroup = new THREE.Group();
+    orbGroup = new _THREE.Group();
     scene.add(orbGroup);
 }
 
@@ -162,7 +178,10 @@ function animate() {
     requestAnimationFrame(animate);
 
     // Update OrbitControls
-    controls.update();
+    if (controls) {
+        controls.update();
+    }
+    
 
     // Rotate the orbGroup slowly when not focused on an orb
     if (orbGroup && !isOrbFocused) {
@@ -235,7 +254,7 @@ async function renderOrbs() {
         return;
     }
 
-    const geometry = new THREE.SphereGeometry(ORB_RADIUS, 32, 32);
+    const geometry = new _THREE.SphereGeometry(ORB_RADIUS, 32, 32);
 
     // Position orbs using a spiral or more dynamic layout
     const numOrbs = termsData.length;
@@ -252,15 +271,15 @@ async function renderOrbs() {
         const y = startY + Math.floor(index / maxDimension) * spacing;
         const z = startZ + (Math.random() - 0.5) * spacing; // Add some depth variation
 
-        const position = new THREE.Vector3(x, y, z);
+        const position = new _THREE.Vector3(x, y, z);
 
-        const material = new THREE.MeshPhongMaterial({
-            color: new THREE.Color(Math.random() * 0xffffff), // Random color for each orb
+        const material = new _THREE.MeshPhongMaterial({
+            color: new _THREE.Color(Math.random() * 0xffffff), // Random color for each orb
             transparent: true,
             opacity: 0.8,
             shininess: 50
         });
-        const orbMesh = new THREE.Mesh(geometry, material);
+        const orbMesh = new _THREE.Mesh(geometry, material);
         orbMesh.position.copy(position);
         orbMesh.name = `orb-${termItem.id}`; // Give it a unique name for raycasting
         orbMesh.userData = { term: termItem, originalPosition: position.clone(), originalScale: orbMesh.scale.clone() }; // Store term data and original state
@@ -381,7 +400,7 @@ function hideDefinitionPanel() {
     isOrbFocused = false;
 
     // Reset camera controls and orb position
-    controls.target.copy(new THREE.Vector3(0, 0, 0)); // Reset target to origin
+    controls.target.copy(new _THREE.Vector3(0, 0, 0)); // Reset target to origin
     controls.update();
 
     // Restore all orb labels to hidden state
@@ -391,8 +410,15 @@ function hideDefinitionPanel() {
         }
         // Also restore orb positions/scales if they were altered for focus
         if (child.isMesh && child.userData.originalPosition) {
-            child.position.copy(child.userData.originalPosition);
-            child.scale.copy(child.userData.originalScale);
+            // Use TWEEN for smooth return animation
+            new TWEEN.Tween(child.position)
+                .to(child.userData.originalPosition, 500)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+            new TWEEN.Tween(child.scale)
+                .to(child.userData.originalScale, 500)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
         }
     });
     currentOrb = null; // Clear focused orb
@@ -423,8 +449,8 @@ function updateDefinitionPanel(termData) {
 }
 
 // Raycaster for orb double-click detection
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+const raycaster = new _THREE.Raycaster();
+const mouse = new _THREE.Vector2();
 
 function onOrbDoubleClick(event) {
     event.preventDefault(); // Prevent browser double-click behavior (e.g., text selection)
@@ -444,15 +470,13 @@ function onOrbDoubleClick(event) {
             if (isOrbFocused && intersectedOrb === currentOrb) {
                 // If the same orb is double-clicked again, unfocus
                 hideDefinitionPanel();
-                // Move orb back to original position (handled by hideDefinitionPanel)
             } else {
                 // Double-clicked a new orb, or first double-click
                 isOrbFocused = true;
                 currentOrb = intersectedOrb;
 
                 // Animate camera to focus on the orb
-                const targetPosition = new THREE.Vector3().copy(currentOrb.position);
-                const cameraEndPosition = new THREE.Vector3().copy(targetPosition).add(new THREE.Vector3(0, 0, 5)); // 5 units back from orb
+                const targetPosition = new _THREE.Vector3().copy(currentOrb.position);
                 
                 // Animate orb to center and expand
                 new TWEEN.Tween(currentOrb.position)
@@ -463,18 +487,22 @@ function onOrbDoubleClick(event) {
                     .to({ x: 1.5, y: 1.5, z: 1.5 }, 500)
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .start();
-
-                // TWEEN.js is not imported, let's just directly set the camera target and position
-                // For a proper animation, you'd integrate a library like TWEEN.js or implement custom animation.
-                // For now, instantly move camera target to the orb's position
-                controls.target.copy(currentOrb.position);
-                controls.update(); // Update controls after changing target
+                
+                // Animate controls target smoothly
+                new TWEEN.Tween(controls.target)
+                    .to(targetPosition, 500)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
 
                 // Also make the label visible and centered relative to the orb
                 if (currentOrb.userData.label) {
-                    currentOrb.userData.label.position.copy(currentOrb.position);
-                    currentOrb.userData.label.position.y += ORB_RADIUS + 0.5; // Position above orb
-                    currentOrb.userData.label.element.style.opacity = '1'; // Make label visible
+                    // Make label visible immediately
+                    currentOrb.userData.label.element.style.opacity = '1';
+                    // Update label position smoothly along with the orb
+                    new TWEEN.Tween(currentOrb.userData.label.position)
+                        .to({ x: 0, y: ORB_RADIUS + 0.5, z: 0.01 }, 500) // Adjust y for label above orb at new scale
+                        .easing(TWEEN.Easing.Quadratic.Out)
+                        .start();
                 }
 
                 showDefinitionPanel(currentOrb.userData.term);
@@ -492,13 +520,11 @@ function onOrbDoubleClick(event) {
 function onKeyDown(event) {
     if (event.key === 'Escape' && definitionPanelVisible) {
         hideDefinitionPanel();
-    } else if (event.key === 'ArrowRight' && definitionPanelVisible && currentOrb) {
+    } else if ((event.key === 'ArrowRight' || event.key === 'ArrowUp') && definitionPanelVisible && currentOrb) {
         cycleDefinition(1); // Next definition
-    } else if (event.key === 'ArrowLeft' && definitionPanelVisible && currentOrb) {
+    } else if ((event.key === 'ArrowLeft' || event.key === 'ArrowDown') && definitionPanelVisible && currentOrb) {
         cycleDefinition(-1); // Previous definition
     }
-    // Add up/down arrow key logic for cycling definitions as well, if desired
-    // For now, let's keep it left/right to match common UI patterns.
 }
 
 // Mouse glow effect
@@ -506,8 +532,3 @@ function onMouseMove(event) {
     mouseGlow.style.left = `${event.clientX}px`;
     mouseGlow.style.top = `${event.clientY}px`;
 }
-
-// Note: Advanced mouse interaction (attract/repel based on speed/angle)
-// and physics-based orb-to-orb interaction would require a physics engine
-// (e.g., Cannon.js, Rapier.js) and custom force calculations based on tags.
-// This is beyond the scope of a single update but is a great next step!
