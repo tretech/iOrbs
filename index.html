@@ -9,12 +9,11 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- PapaParse for CSV parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <!-- Three.js for 3D visualization -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- CSS2DRenderer for 2D UI overlays in 3D space -->
-    <script type="module" src="./CSS2DRenderer (1).js"></script>
-    <!-- OrbitControls for camera interaction -->
-    <script type="module" src="./OrbitControls (1).js"></script>
+    
+    <!-- CSS2DRenderer for 2D UI overlays in 3D space - now loaded from js/ folder -->
+    <script type="module" src="./js/CSS2DRenderer (1).js"></script>
+    <!-- OrbitControls for camera interaction - now loaded from js/ folder -->
+    <script type="module" src="./js/OrbitControls (1).js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -347,9 +346,10 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js"; // Three.js module import
 
         import { initAdmin } from './js/admin.js';
-        import { initExplorer } from './js/explorer.js'; // Re-added import for external explorer.js
+        import { initExplorer } from './js/explorer.js'; 
 
         // --- Global Firebase & App Variables ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-orbs-app-id';
@@ -424,8 +424,8 @@
                             console.log("Firebase initialized and user signed in:", currentUserId);
                             // Initialize modules after successful authentication
                             initAdmin(db, auth, appId, currentUserId, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
-                            // Pass db, appId, collection, query, getDocs to the initExplorer from the external file
-                            initExplorer(db, appId, collection, query, getDocs);
+                            // Pass db, appId, collection, query, getDocs, and THREE to the initExplorer from the external file
+                            initExplorer(db, appId, collection, query, getDocs, THREE);
                         } else {
                             console.log("No user signed in.");
                             currentUserId = 'anonymous'; // Reset if user signs out
@@ -435,13 +435,13 @@
                     console.error("Firebase config is invalid. Please check your firebaseConfig object.");
                     // Still initialize modules with null for Firebase instances if config is bad
                     initAdmin(null, null, appId, 'anonymous', () => new Date(), Papa, showConfirmModal, null, null, null, null, null, null, null, null);
-                    initExplorer(null, appId, null, null, null);
+                    initExplorer(null, appId, null, null, null, null); // Pass null for THREE if not initialized
                 }
             } catch (error) {
                 console.error("Error during Firebase initialization or sign-in:", error);
                 // Fallback for when Firebase isn't available (e.g., local dev without emulator)
                 initAdmin(null, null, appId, 'anonymous', () => new Date(), Papa, showConfirmModal, null, null, null, null, null, null, null, null);
-                initExplorer(null, appId, null, null, null);
+                initExplorer(null, appId, null, null, null, null); // Pass null for THREE if not initialized
             }
 
             // Tab switching logic
