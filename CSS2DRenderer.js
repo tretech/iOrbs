@@ -1,451 +1,317 @@
 import {
-	Controls,
-	MOUSE,
-	Quaternion,
-	Spherical,
-	TOUCH,
+	Matrix4,
+	Object3D,
 	Vector2,
-	Vector3,
-	Plane,
-	Ray,
-	MathUtils
-} from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js'; // CORRECTED: Direct CDN path
+	Vector3
+} from 'three';
 
 /**
- * Fires when the camera has been transformed by the controls.
+ * The only type of 3D object that is supported by {@link CSS2DRenderer}.
  *
- * @event OrbitControls#change
- * @type {Object}
+ * @augments Object3D
+ * @three_import import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
  */
-const _changeEvent = { type: 'change' };
-
-/**
- * Fires when an interaction was initiated.
- *
- * @event OrbitControls#start
- * @type {Object}
- */
-const _startEvent = { type: 'start' };
-
-/**
- * Fires when an interaction has finished.
- *
- * @event OrbitControls#end
- * @type {Object}
- */
-const _endEvent = { type: 'end' };
-
-const _ray = new Ray();
-const _plane = new Plane();
-const _TILT_LIMIT = Math.cos( 70 * MathUtils.DEG2RAD );
-
-const _v = new Vector3();
-const _twoPI = 2 * Math.PI;
-
-const _STATE = {
-	NONE: - 1,
-	ROTATE: 0,
-	DOLLY: 1,
-	PAN: 2,
-	TOUCH_ROTATE: 3,
-	TOUCH_PAN: 4,
-	TOUCH_DOLLY_PAN: 5,
-	TOUCH_DOLLY_ROTATE: 6
-};
-const _EPS = 0.000001;
-
-
-/**
- * Orbit controls allow the camera to orbit around a target.
- *
- * OrbitControls performs orbiting, dollying (zooming), and panning. Unlike {@link TrackballControls},
- * it maintains the "up" direction `object.up` (+Y by default).
- *
- * - Orbit: Left mouse / touch: one-finger move.
- * - Zoom: Middle mouse, or mousewheel / touch: two-finger spread or squish.
- * - Pan: Right mouse, or left mouse + ctrl/meta/shiftKey, or arrow keys / touch: two-finger move.
- *
- * ```js
- * const controls = new OrbitControls( camera, renderer.domElement );
- *
- * // controls.update() must be called after any manual changes to the camera's transform
- * camera.position.set( 0, 20, 100 );
- * controls.update();
- *
- * function animate() {
- *
- * // required if controls.enableDamping or controls.autoRotate are set to true
- * controls.update();
- *
- * renderer.render( scene, camera );
- *
- * }
- * ```
- *
- * @augments Controls
- * @three_import import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
- */
-class OrbitControls extends Controls {
+class CSS2DObject extends Object3D {
 
 	/**
-	 * Constructs a new controls instance.
+	 * Constructs a new CSS2D object.
 	 *
-	 * @param {Object3D} object - The object that is managed by the controls.
-	 * @param {?HTMLDOMElement} domElement - The HTML element used for event listeners.
+	 * @param {DOMElement} [element] - The DOM element.
 	 */
-	constructor( object, domElement = null ) {
+	constructor( element = document.createElement( 'div' ) ) {
 
-		super( object, domElement );
-
-		this.state = _STATE.NONE;
+		super();
 
 		/**
-		 * The focus point of the controls, the `object` orbits around this.
-		 * It can be updated manually at any point to change the focus of the controls.
-		 *
-		 * @type {Vector3}
-		 */
-		this.target = new Vector3();
-
-		/**
-		 * The focus point of the `minTargetRadius` and `maxTargetRadius` limits.
-		 * It can be updated manually at any point to change the center of interest
-		 * for the `target`.
-		 *
-		 * @type {Vector3}
-		 */
-		this.cursor = new Vector3();
-
-		/**
-		 * How far you can dolly in (perspective camera only).
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
-		this.minDistance = 0;
-
-		/**
-		 * How far you can dolly out (perspective camera only).
-		 *
-		 * @type {number}
-		 * @default Infinity
-		 */
-		this.maxDistance = Infinity;
-
-		/**
-		 * How far you can zoom in (orthographic camera only).
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
-		this.minZoom = 0;
-
-		/**
-		 * How far you can zoom out (orthographic camera only).
-		 *
-		 * @type {number}
-		 * @default Infinity
-		 */
-		this.maxZoom = Infinity;
-
-		/**
-		 * How close you can get the target to the 3D `cursor`.
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
-		this.minTargetRadius = 0;
-
-		/**
-		 * How far you can move the target from the 3D `cursor`.
-		 *
-		 * @type {number}
-		 * @default Infinity
-		 */
-		this.maxTargetRadius = Infinity;
-
-		/**
-		 * How far you can orbit vertically, lower limit. Range is `[0, Math.PI]` radians.
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
-		this.minPolarAngle = 0;
-
-		/**
-		 * How far you can orbit vertically, upper limit. Range is `[0, Math.PI]` radians.
-		 *
-		 * @type {number}
-		 * @default Math.PI
-		 */
-		this.maxPolarAngle = Math.PI;
-
-		/**
-		 * How far you can orbit horizontally, lower limit. If set, the interval `[ min, max ]`
-		 * must be a sub-interval of `[ - 2 PI, 2 PI ]`, with `( max - min < 2 PI )`.
-		 *
-		 * @type {number}
-		 * @default -Infinity
-		 */
-		this.minAzimuthAngle = - Infinity;
-
-		/**
-		 * How far you can orbit horizontally, upper limit. If set, the interval `[ min, max ]`
-		 * must be a sub-interval of `[ - 2 PI, 2 PI ]`, with `( max - min < 2 PI )`.
-		 *
-		 * @type {number}
-		 * @default -Infinity
-		 */
-		this.maxAzimuthAngle = Infinity;
-
-		/**
-		 * Set to `true` to enable damping (inertia), which can be used to give a sense of weight
-		 * to the controls. Note that if this is enabled, you must call `update()` in your animation
-		 * loop.
+		 * This flag can be used for type testing.
 		 *
 		 * @type {boolean}
-		 * @default false
-		 */
-		this.enableDamping = false;
-
-		/**
-		 * The damping inertia used if `enableDamping` is set to `true`.
-		 *
-		 * Note that for this to work, you must call `update()` in your animation loop.
-		 *
-		 * @type {number}
-		 * @default 0.05
-		 */
-		this.dampingFactor = 0.05;
-
-		/**
-		 * Enable or disable zooming (dollying) of the camera.
-		 *
-		 * @type {boolean}
+		 * @readonly
 		 * @default true
 		 */
-		this.enableZoom = true;
+		this.isCSS2DObject = true;
 
 		/**
-		 * Speed of zooming / dollying.
+		 * The DOM element which defines the appearance of this 3D object.
 		 *
-		 * @type {number}
-		 * @default 1
-		 */
-		this.zoomSpeed = 1.0;
-
-		/**
-		 * Enable or disable horizontal and vertical rotation of the camera.
-		 *
-		 * Note that it is possible to disable a single axis by setting the min and max of the
-		 * `minPolarAngle` or `minAzimuthAngle` to the same value, which will cause the vertical
-		 * or horizontal rotation to be fixed at that value.
-		 *
-		 * @type {boolean}
+		 * @type {DOMElement}
+		 * @readonly
 		 * @default true
 		 */
-		this.enableRotate = true;
+		this.element = element;
+
+		this.element.style.position = 'absolute';
+		this.element.style.userSelect = 'none';
+
+		this.element.setAttribute( 'draggable', false );
 
 		/**
-		 * Speed of rotation.
+		 * The 3D objects center point.
+		 * `( 0, 0 )` is the lower left, `( 1, 1 )` is the top right.
 		 *
-		 * @type {number}
-		 * @default 1
+		 * @type {Vector2}
+		 * @default (0.5,0.5)
 		 */
-		this.rotateSpeed = 1.0;
+		this.center = new Vector2( 0.5, 0.5 );
+
+		this.addEventListener( 'removed', function () {
+
+			this.traverse( function ( object ) {
+
+				if (
+					object.element instanceof object.element.ownerDocument.defaultView.Element &&
+					object.element.parentNode !== null
+				) {
+
+					object.element.remove();
+
+				}
+
+			} );
+
+		} );
+
+	}
+
+	copy( source, recursive ) {
+
+		super.copy( source, recursive );
+
+		this.element = source.element.cloneNode( true );
+
+		this.center = source.center;
+
+		return this;
+
+	}
+
+}
+
+//
+
+const _vector = new Vector3();
+const _viewMatrix = new Matrix4();
+const _viewProjectionMatrix = new Matrix4();
+const _a = new Vector3();
+const _b = new Vector3();
+
+/**
+ * This renderer is a simplified version of {@link CSS3DRenderer}. The only transformation that is
+ * supported is translation.
+ *
+ * The renderer is very useful if you want to combine HTML based labels with 3D objects. Here too,
+ * the respective DOM elements are wrapped into an instance of {@link CSS2DObject} and added to the
+ * scene graph. All other types of renderable 3D objects (like meshes or point clouds) are ignored.
+ *
+ * `CSS2DRenderer` only supports 100% browser and display zoom.
+ *
+ * @three_import import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+ */
+class CSS2DRenderer {
+
+	/**
+	 * Constructs a new CSS2D renderer.
+	 *
+	 * @param {CSS2DRenderer~Parameters} [parameters] - The parameters.
+	 */
+	constructor( parameters = {} ) {
+
+		const _this = this;
+
+		let _width, _height;
+		let _widthHalf, _heightHalf;
+
+		const cache = {
+			objects: new WeakMap()
+		};
+
+		const domElement = parameters.element !== undefined ? parameters.element : document.createElement( 'div' );
+
+		domElement.style.overflow = 'hidden';
 
 		/**
-		 * How fast to rotate the camera when the keyboard is used.
+		 * The DOM where the renderer appends its child-elements.
 		 *
-		 * @type {number}
-		 * @default 1
+		 * @type {DOMElement}
 		 */
-		this.keyRotateSpeed = 1.0;
+		this.domElement = domElement;
 
 		/**
-		 * Enable or disable camera panning.
+		 * Returns an object containing the width and height of the renderer.
 		 *
-		 * @type {boolean}
-		 * @default true
+		 * @return {{width:number,height:number}} The size of the renderer.
 		 */
-		this.enablePan = true;
+		this.getSize = function () {
+
+			return {
+				width: _width,
+				height: _height
+			};
+
+		};
 
 		/**
-		 * Speed of panning.
+		 * Renders the given scene using the given camera.
 		 *
-		 * @type {number}
-		 * @default 1
+		 * @param {Object3D} scene - A scene or any other type of 3D object.
+		 * @param {Camera} camera - The camera.
 		 */
-		this.panSpeed = 1.0;
+		this.render = function ( scene, camera ) {
+
+			if ( scene.matrixWorldAutoUpdate === true ) scene.updateMatrixWorld();
+			if ( camera.parent === null && camera.matrixWorldAutoUpdate === true ) camera.updateMatrixWorld();
+
+			_viewMatrix.copy( camera.matrixWorldInverse );
+			_viewProjectionMatrix.multiplyMatrices( camera.projectionMatrix, _viewMatrix );
+
+			renderObject( scene, scene, camera );
+			zOrder( scene );
+
+		};
 
 		/**
-		 * Defines how the camera's position is translated when panning. If `true`, the camera pans
-		 * in screen space. Otherwise, the camera pans in the plane orthogonal to the camera's up
-		 * direction.
+		 * Resizes the renderer to the given width and height.
 		 *
-		 * @type {boolean}
-		 * @default true
+		 * @param {number} width - The width of the renderer.
+		 * @param {number} height - The height of the renderer.
 		 */
-		this.screenSpacePanning = true;
+		this.setSize = function ( width, height ) {
 
-		/**
-		 * How fast to pan the camera when the keyboard is used in
-		 * pixels per keypress.
-		 *
-		 * @type {number}
-		 * @default 7
-		 */
-		this.keyPanSpeed = 7.0;
+			_width = width;
+			_height = height;
 
-		/**
-		 * Setting this property to `true` allows to zoom to the cursor's position.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
-		this.zoomToCursor = false;
+			_widthHalf = _width / 2;
+			_heightHalf = _height / 2;
 
-		/**
-		 * Set to true to automatically rotate around the target
-		 *
-		 * Note that if this is enabled, you must call `update()` in your animation loop.
-		 * If you want the auto-rotate speed to be independent of the frame rate (the refresh
-		 * rate of the display), you must pass the time `deltaTime`, in seconds, to `update()`.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
-		this.autoRotate = false;
+			domElement.style.width = width + 'px';
+			domElement.style.height = height + 'px';
 
-		/**
-		 * How fast to rotate around the target if `autoRotate` is `true`. The default  equates to 30 seconds
-		 * per orbit at 60fps.
-		 *
-		 * Note that if `autoRotate` is enabled, you must call `update()` in your animation loop.
-		 *
-		 * @type {number}
-		 * @default 2
-		 */
-		this.autoRotateSpeed = 2.0;
+		};
 
-		/**
-		 * This object contains references to the keycodes for controlling camera panning.
-		 *
-		 * ```js
-		 * controls.keys = {
-		 * LEFT: 'ArrowLeft', //left arrow
-		 * UP: 'ArrowUp', // up arrow
-		 * RIGHT: 'ArrowRight', // right arrow
-		 * BOTTOM: 'ArrowDown' // down arrow
-		 * }
-		 * ```
-		 * @type {Object}
-		 */
-		this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
+		function hideObject( object ) {
 
-		/**
-		 * This object contains references to the mouse actions used by the controls.
-		 *
-		 * ```js
-		 * controls.mouseButtons = {
-		 * LEFT: THREE.MOUSE.ROTATE,
-		 * MIDDLE: THREE.MOUSE.DOLLY,
-		 * RIGHT: THREE.MOUSE.PAN
-		 * }
-		 * ```
-		 * @type {Object}
-		 */
-		this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
+			if ( object.isCSS2DObject ) object.element.style.display = 'none';
 
-		/**
-		 * This object contains references to the touch actions used by the controls.
-		 *
-		 * ```js
-		 * controls.mouseButtons = {
-		 * ONE: THREE.TOUCH.ROTATE,
-		 * TWO: THREE.TOUCH.DOLLY_PAN
-		 * }
-		 * ```
-		 * @type {Object}
-		 */
-		this.touches = { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN };
+			for ( let i = 0, l = object.children.length; i < l; i ++ ) {
 
-		/**
-		 * Used internally by `saveState()` and `reset()`.
-		 *
-		 * @type {Vector3}
-		 */
-		this.target0 = this.target.clone();
+				hideObject( object.children[ i ] );
 
-		/**
-		 * Used internally by `saveState()` and `reset()`.
-		 *
-		 * @type {Vector3}
-		 */
-		this.position0 = this.object.position.clone();
+			}
 
-		/**
-		 * Used internally by `saveState()` and `reset()`.
-		 *
-		 * @type {number}
-		 */
-		this.zoom0 = this.object.zoom;
+		}
 
-		// the target DOM element for key events
-		this._domElementKeyEvents = null;
+		function renderObject( object, scene, camera ) {
 
-		// internals
+			if ( object.visible === false ) {
 
-		this._lastPosition = new Vector3();
-		this._lastQuaternion = new Quaternion();
-		this._lastTargetPosition = new Vector3();
+				hideObject( object );
 
-		// so camera.up is the orbit axis
-		this._quat = new Quaternion().setFromUnitVectors( object.up, new Vector3( 0, 1, 0 ) );
-		this._quatInverse = this._quat.clone().invert();
+				return;
 
-		// current position in spherical coordinates
-		this._spherical = new Spherical();
-		this._sphericalDelta = new Spherical();
+			}
 
-		this._scale = 1;
-		this._panOffset = new Vector3();
+			if ( object.isCSS2DObject ) {
 
-		this._rotateStart = new Vector2();
-		this._rotateEnd = new Vector2();
-		this._rotateDelta = new Vector2();
+				_vector.setFromMatrixPosition( object.matrixWorld );
+				_vector.applyMatrix4( _viewProjectionMatrix );
 
-		this._panStart = new Vector2();
-		this._panEnd = new Vector2();
-		this._panDelta = new Vector2();
+				const visible = ( _vector.z >= - 1 && _vector.z <= 1 ) && ( object.layers.test( camera.layers ) === true );
 
-		this._dollyStart = new Vector2();
-		this._dollyEnd = new Vector2();
-		this._dollyDelta = new Vector2();
+				const element = object.element;
+				element.style.display = visible === true ? '' : 'none';
 
-		this._dollyDirection = new Vector3();
-		this._mouse = new Vector2();
-		this._performCursorZoom = false;
+				if ( visible === true ) {
 
-		this._pointers = [];
-		this._pointerPositions = {};
+					object.onBeforeRender( _this, scene, camera );
 
-		this._controlActive = false;
+					element.style.transform = 'translate(' + ( - 100 * object.center.x ) + '%,' + ( - 100 * object.center.y ) + '%)' + 'translate(' + ( _vector.x * _widthHalf + _widthHalf ) + 'px,' + ( - _vector.y * _heightHalf + _heightHalf ) + 'px)';
 
-		// event listeners
+					if ( element.parentNode !== domElement ) {
 
-		this._onPointerMove = onPointerMove.bind( this );
-		this._onPointerDown = onPointerDown.bind( this );
-		this._onPointerUp = onPointerUp.bind( this );
-		this._onContextMenu = onContextMenu.bind( this );
-		this._onMouseWheel = onMouseWheel.bind( this );
-		this._onKeyDown = onKeyDown.bind( this );
+						domElement.appendChild( element );
 
-		this._onTouchStart = onTouchStart.bind( this );
-		this._onTouchMove = onTouchMove.bind( this );
+					}
 
-		this._onMouseDown = onMouseDown.bind( this );
-		this._onMouseMove = onMouseMove.bind( this );
+					object.onAfterRender( _this, scene, camera );
 
-		this._interceptControlDown = interceptControlDown.bind( this );
-		t
+				}
+
+				const objectData = {
+					distanceToCameraSquared: getDistanceToSquared( camera, object )
+				};
+
+				cache.objects.set( object, objectData );
+
+			}
+
+			for ( let i = 0, l = object.children.length; i < l; i ++ ) {
+
+				renderObject( object.children[ i ], scene, camera );
+
+			}
+
+		}
+
+		function getDistanceToSquared( object1, object2 ) {
+
+			_a.setFromMatrixPosition( object1.matrixWorld );
+			_b.setFromMatrixPosition( object2.matrixWorld );
+
+			return _a.distanceToSquared( _b );
+
+		}
+
+		function filterAndFlatten( scene ) {
+
+			const result = [];
+
+			scene.traverseVisible( function ( object ) {
+
+				if ( object.isCSS2DObject ) result.push( object );
+
+			} );
+
+			return result;
+
+		}
+
+		function zOrder( scene ) {
+
+			const sorted = filterAndFlatten( scene ).sort( function ( a, b ) {
+
+				if ( a.renderOrder !== b.renderOrder ) {
+
+					return b.renderOrder - a.renderOrder;
+
+				}
+
+				const distanceA = cache.objects.get( a ).distanceToCameraSquared;
+				const distanceB = cache.objects.get( b ).distanceToCameraSquared;
+
+				return distanceA - distanceB;
+
+			} );
+
+			const zMax = sorted.length;
+
+			for ( let i = 0, l = sorted.length; i < l; i ++ ) {
+
+				sorted[ i ].element.style.zIndex = zMax - i;
+
+			}
+
+		}
+
+	}
+
+}
+
+/**
+ * Constructor parameters of `CSS2DRenderer`.
+ *
+ * @typedef {Object} CSS2DRenderer~Parameters
+ * @property {DOMElement} [element] - A DOM element where the renderer appends its child-elements.
+ * If not passed in here, a new div element will be created.
+ **/
+
+export { CSS2DObject, CSS2DRenderer };
