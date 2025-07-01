@@ -92,6 +92,27 @@
                     <button id="explorer-mode-btn" class="w-full text-left p-2 hover:bg-gray-800 focus:outline-none focus:bg-cyan-700 rounded">[Explorer Mode] - Visualize and interact with term orbs.</button>
                     <button id="admin-mode-btn" class="w-full text-left p-2 hover:bg-gray-800 focus:outline-none focus:bg-cyan-700 rounded">[Admin] - Manage data sources and system settings (Locked).</button>
                 </div>
+                <div class="mt-4">
+                    <p class="text-green-400">> System ready. Select operating mode.</p>
+  
+                    <div class="mt-4 space-y-2">
+                        <button id="explorer-mode-btn" class="w-full text-left p-2 hover:bg-gray-800 focus:outline-none focus:bg-cyan-700 rounded">
+                          [Explorer Mode] - Visualize and interact with term orbs.
+                        </button>
+                        <button id="admin-mode-btn" class="w-full text-left p-2 hover:bg-gray-800 focus:outline-none focus:bg-cyan-700 rounded">
+                          [Admin] - Manage data sources and system settings (Locked).
+                        </button>
+                      </div>
+
+  <!-- Add this just above the input row -->
+<div id="command-log" class="h-40 overflow-y-auto bg-gray-900/40 rounded p-2 text-sm font-mono space-y-1 mb-4 border border-gray-700"></div>
+
+  <div class="mt-6 flex items-center">
+    <span class="text-green-400 mr-2">></span>
+    <input type="text" id="run-command" placeholder="type 'run' or a command..." class="flex-grow bg-transparent border-none focus:outline-none text-cyan-300 placeholder-gray-500">
+  </div>
+</div>
+
                 <div class="mt-6 flex items-center">
                     <span class="text-green-400 mr-2">></span>
                     <input type="text" id="run-command" placeholder="type 'run' or a command..." class="flex-grow bg-transparent border-none focus:outline-none text-cyan-300 placeholder-gray-500">
