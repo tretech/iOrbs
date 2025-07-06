@@ -6,7 +6,7 @@
     <title>Orbs System</title>
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>" type="image/svg+xml">
-    <!-- Tailwind CSS CDN for development. For production, install as a PostCSS plugin: https://tailwindcss.com/docs/installation -->
+    <!-- Tailwind CSS CDN for development. For production, install as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -43,7 +43,6 @@
         import authState from './js/state.js'; // Import authState
         import { initAdmin } from './js/admin.js'; // Import initAdmin
         import { initExplorer } from './js/explorer.js'; // Import initExplorer
-        // Removed: import Papa from 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js';
 
 
         // --- Firebase Configuration ---
@@ -99,9 +98,8 @@
                         const saveBtn = document.getElementById('save-term-btn');
                         if (saveBtn) saveBtn.disabled = false;
 
-                        // Initialize Admin module here, passing all necessary dependencies, including global Papa
-                        initAdmin(db, auth, appId, currentUserId, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
-
+                        // No longer calling initAdmin here directly.
+                        // It will be called by loadModuleContent when Admin mode is activated.
 
                     } else {
                         // This case should ideally not be hit after signInAnonymously,
@@ -114,8 +112,7 @@
                         const saveBtn = document.getElementById('save-term-btn');
                         if (saveBtn) saveBtn.disabled = true; // Disable until authenticated
 
-                        // Initialize Admin module even if not authenticated, but with null for sensitive functions
-                        initAdmin(null, null, appId, 'anonymous', () => new Date(), Papa, showConfirmModal, null, null, null, null, null, null, null, null);
+                        // No longer calling initAdmin here directly for anonymous users either.
                     }
                 });
 
@@ -211,7 +208,7 @@
                     </div>
                 `;
                 // Initialize Admin module here, passing all necessary dependencies
-                // This call is redundant if already called in onAuthStateChanged, but ensures it runs if auth state is already set.
+                // This is the correct place to call initAdmin, after its DOM elements are rendered.
                 initAdmin(db, auth, appId, currentUserId, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
 
             } else if (mode === 'explorer') {
