@@ -3,350 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iOrbs - Interactive Term Orbs 2.02</title>
-
-    <!-- 
-      Import Map: Tells the browser where to find "three" and its addons.
-      This is the key to making `import` statements work correctly.
-      Switched back to unpkg.com CDN for better compatibility on live servers.
-    -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
-        }
-    }
-    </script>
-
-    <!-- Tailwind CSS for styling -->
+    <title>Orbs System</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>" type="image/svg+xml">
+    <!-- Tailwind CSS CDN for development. For production, install as a PostCSS plugin: https://tailwindcss.com/docs/installation -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap" rel="stylesheet">
-    
-    <!-- PapaParse for CSV parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    
-    <!-- TWEEN.js for smooth animations -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/23.1.1/tween.umd.js"></script>
-
-    <style>
-        /* Custom styles */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0a0a0a;
-            color: #e2e8f0;
-            overflow: hidden; /* Prevent scrollbars */
-        }
-
-        #loading-screen, #start-screen {
-            font-family: 'Fira Code', monospace;
-        }
-
-        /* Fix for the @apply issue: Use standard CSS in a style tag */
-        .tab-button.active {
-            background-color: #0e7490; /* Equivalent to bg-cyan-700 */
-            color: white;
-        }
-
-        /* Style for the 2D labels on the orbs */
-        .orb-label {
-            color: #cbd5e1;
-            background: rgba(10, 10, 10, 0.6);
-            border: 1px solid #334155;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            pointer-events: none; /* Allows clicking through the label to the orb */
-            backdrop-filter: blur(2px);
-            text-shadow: 0 0 5px black;
-        }
-    </style>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Main application stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-black text-gray-200">
+<body class="antialiased">
 
-    <!-- The container for the 3D canvas -->
-    <div id="canvas-container" class="absolute top-0 left-0 w-full h-full"></div>
+    <header class="header flex justify-between items-center px-6">
+        <h1 class="text-3xl font-bold text-blue-300">Orbs System</h1>
+        <nav>
+            <button id="adminModeBtn" class="nav-button">Admin Mode</button>
+            <button id="explorerModeBtn" class="nav-button">Explorer Mode</button>
+        </nav>
+    </header>
 
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center transition-opacity duration-1000">
-        <div class="text-cyan-400">Booting iOrb Subsystem...</div>
-        <div id="loading-progress" class="w-1/3 h-1 mt-4 bg-gray-800 rounded-full overflow-hidden">
-            <div id="loading-bar" class="h-full bg-cyan-400" style="width: 0%"></div>
+    <main class="content-area">
+        <div id="app-content" class="rounded-card">
+            <!-- Content will be loaded dynamically here -->
+            <h2 class="text-2xl font-semibold mb-4">Welcome to Orbs!</h2>
+            <p class="text-lg text-gray-300">Select a mode above to begin.</p>
+            <p class="text-sm text-gray-400 mt-6">Firebase Status: <span id="firebase-status" class="text-yellow-400">Initializing...</span></p>
+            <p class="text-sm text-gray-400">User ID: <span id="user-id" class="text-yellow-400">N/A</span></p>
         </div>
-    </div>
+    </main>
 
-    <!-- Start Screen (Terminal UI) -->
-    <div id="start-screen" class="absolute inset-0 bg-black bg-opacity-80 z-40 flex items-center justify-center transition-opacity duration-1000 opacity-0 pointer-events-none">
-        <div class="w-full max-w-2xl h-auto bg-black border-2 border-cyan-700/50 rounded-lg shadow-2xl shadow-cyan-900/50 p-4">
-            <div class="flex items-center pb-2 border-b border-gray-700">
-                <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                <div class="flex-grow text-center text-gray-400">iORBS_TERMINAL</div>
-            </div>
-            <div class="mt-4">
-                <p class="text-green-400">> System ready. Select operating mode.</p>
-                <div class="mt-4 space-y-2">
-                    <button id="explorer-mode-btn" class="w-full text-left p-2 hover:bg-gray-800 focus:outline-none focus:bg-cyan-700 rounded">[Explorer Mode] - Visualize and interact with term orbs.</button>
-                    <button id="admin-mode-btn" class="w-full text-left p-2 hover:bg-gray-800 focus:outline-none focus:bg-cyan-700 rounded">[Admin] - Manage data sources and system settings (Locked).</button>
-                </div>
-            <div id="command-log" class="h-40 overflow-y-auto bg-gray-900/40 rounded p-2 text-sm font-mono space-y-1 mb-4 border border-gray-700"></div>
-            <div class="mt-6 flex items-center">
-                <span class="text-green-400 mr-2">></span>
-                <input type="text" id="run-command" placeholder="type 'run' or a command..." class="flex-grow bg-transparent border-none focus:outline-none text-cyan-300 placeholder-gray-500">
-            </div>
-        </div>
-    </div>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import authState from './js/state.js'; // Import authState
+        import { initAdmin } from './js/admin.js'; // Import initAdmin
+        import { initExplorer } from './js/explorer.js'; // Import initExplorer
+        import Papa from 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js'; // Import PapaParse
 
-    <!-- Main application logic -->
-  <script type="module">
-    // Import necessary modules. The import map in the <head> tells the browser where to find these.
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-    // --- DOM Elements ---
-    const canvasContainer = document.getElementById('canvas-container');
-    const loadingScreen = document.getElementById('loading-screen');
-    const loadingBar = document.getElementById('loading-bar');
-    const startScreen = document.getElementById('start-screen');
-    const explorerModeBtn = document.getElementById('explorer-mode-btn');
-    const adminModeBtn = document.getElementById('admin-mode-btn');
-    const runCommandInput = document.getElementById('run-command');
+        // --- Firebase Configuration ---
+        // Your actual Firebase project configuration details provided:
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYiaAH3wRzW6557xLJQ6zm9-RuSKBWWuM",
+            authDomain: "orbdefine.firebaseapp.com",
+            projectId: "orbdefine",
+            storageBucket: "orbdefine.firebasestorage.app",
+            messagingSenderId: "247935667317",
+            appId: "1:247935667317:web:2dff8b9b44848553fafc3c",
+            measurementId: "G-0VGTHSL2VZ" // Optional
+        };
 
-    // --- Global Variables ---
-    let scene, camera, renderer, controls, labelRenderer;
-    const orbs = [];
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    let INTERSECTED;
+        // Application ID for Firestore collection paths (e.g., /artifacts/your-app-id/public/data/terms)
+        // You can customize this string.
+        const appId = 'default-orbs-app-id'; // Using a default app ID for the collection path
 
-    // --- Data ---
-    // Mock CSV data for demonstration. PapaParse will handle this.
-    const mockCSVData = `id,term,category,value
-1,JavaScript,Programming Language,95
-2,Python,Programming Language,90
-3,Three.js,Library,85
-4,AI,Field,92
-5,WebGL,API,78
-6,React,Framework,88
-7,Data Visualization,Concept,82`;
+        // --- Firebase Instances ---
+        let app;
+        let db;
+        let auth;
+        let currentUserId = 'N/A'; // Default user ID until authenticated
 
-    // --- Initialization ---
-    function init() {
-        // Scene
-        scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
+        /**
+         * Initializes Firebase and handles user authentication.
+         * Sets up Firestore and Auth instances.
+         */
+        async function initializeFirebase() {
+            try {
+                // Initialize Firebase app with the provided configuration
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
 
-        // Camera
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 5, 25);
+                document.getElementById('firebase-status').textContent = 'Authenticating...';
 
-        // Renderer
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        canvasContainer.appendChild(renderer.domElement);
+                // Sign in anonymously for public access.
+                // For production apps, consider more robust authentication methods.
+                await signInAnonymously(auth);
+                console.log('Signed in anonymously.');
 
-        // 2D Label Renderer
-        labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        canvasContainer.appendChild(labelRenderer.domElement);
+                // Listen for authentication state changes to update the UI with the user's ID.
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        // If a user is logged in (authenticated), use their UID.
+                        currentUserId = user.uid;
+                        authState.update({ userId: user.uid, isAuthenticated: true });
+                        document.getElementById('firebase-status').textContent = 'Authenticated!';
+                        document.getElementById('user-id').textContent = currentUserId;
+                        console.log("Firebase initialized and user signed in:", currentUserId);
+                        // Enable save button once authenticated
+                        const saveBtn = document.getElementById('save-term-btn');
+                        if (saveBtn) saveBtn.disabled = false;
 
-        // Controls
-        controls = new OrbitControls(camera, labelRenderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.minDistance = 5;
-        controls.maxDistance = 100;
+                        // Initialize Admin module here, passing all necessary dependencies
+                        initAdmin(db, auth, appId, currentUserId, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        directionalLight.position.set(5, 10, 7.5);
-        scene.add(directionalLight);
 
-        // Load data and create orbs
-        loadData();
+                    } else {
+                        // This case should ideally not be hit after signInAnonymously,
+                        // but handles any potential sign-out or initial states.
+                        currentUserId = crypto.randomUUID(); // Fallback for unauthenticated scenarios
+                        authState.update({ userId: crypto.randomUUID(), isAuthenticated: false });
+                        document.getElementById('firebase-status').textContent = 'Not Authenticated (Anonymous)';
+                        document.getElementById('user-id').textContent = currentUserId;
+                        console.log("No user signed in. Using random UUID for user ID:", currentUserId);
+                        const saveBtn = document.getElementById('save-term-btn');
+                        if (saveBtn) saveBtn.disabled = true; // Disable until authenticated
 
-        // Event Listeners
-        window.addEventListener('resize', onWindowResize);
-        document.addEventListener('mousemove', onMouseMove);
-        
-        // FIX: Both buttons now have click listeners attached
-        explorerModeBtn.addEventListener('click', startExplorerMode);
-        adminModeBtn.addEventListener('click', () => {
-            alert('Admin Mode is currently locked.'); // Placeholder for admin functionality
-        });
+                        // Initialize Admin module even if not authenticated, but with null for sensitive functions
+                        initAdmin(null, null, appId, 'anonymous', () => new Date(), Papa, showConfirmModal, null, null, null, null, null, null, null, null);
+                    }
+                });
 
-        runCommandInput.addEventListener('keydown', handleRunCommand);
-    }
-
-    // --- Data Handling ---
-    function loadData() {
-        Papa.parse(mockCSVData, {
-            header: true,
-            complete: (results) => {
-                createOrbs(results.data);
+            } catch (error) {
+                console.error("Error initializing Firebase or authenticating:", error);
+                document.getElementById('firebase-status').textContent = 'Error! Check console for details.';
+                document.getElementById('user-id').textContent = 'Error loading user ID.';
             }
-        });
-    }
+        }
 
-    // --- Orb Creation ---
-    function createOrbs(data) {
-        data.forEach((item, index) => {
-            const value = parseFloat(item.value) / 100; // Normalize value
-            const geometry = new THREE.SphereGeometry(value * 2, 32, 32); // Size based on value
-            
-            const material = new THREE.MeshStandardMaterial({
-                color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6),
-                metalness: 0.3,
-                roughness: 0.4,
-                emissive: 0x000000
+        // Dummy showConfirmModal function (needs to be implemented with a proper modal UI)
+        function showConfirmModal(title, message) {
+            return new Promise(resolve => {
+                // In a real app, you'd show a custom modal here.
+                // For now, we'll just log and return true/false.
+                console.warn(`Confirmation Modal: ${title} - ${message}`);
+                // Replace with your actual modal implementation
+                resolve(confirm(message)); // Using browser confirm for quick testing
             });
+        }
 
-            const orb = new THREE.Mesh(geometry, material);
-            
-            // Position orbs in a sphere
-            const phi = Math.acos(-1 + (2 * index) / data.length);
-            const theta = Math.sqrt(data.length * Math.PI) * phi;
-            orb.position.setFromSphericalCoords(15, phi, theta);
-            
-            orb.userData = item; // Store data in the orb
-            scene.add(orb);
-            orbs.push(orb);
 
-            // Create 2D Label
-            const labelDiv = document.createElement('div');
-            labelDiv.className = 'orb-label';
-            labelDiv.textContent = item.term;
-            const label = new CSS2DObject(labelDiv);
-            label.position.copy(orb.position);
-            scene.add(label);
+        /**
+         * Loads content for different application modes (Admin/Explorer).
+         * This function will load appropriate HTML structures and associated JS.
+         * @param {string} mode - The mode to load ('admin' or 'explorer').
+         */
+        async function loadModuleContent(mode) {
+            const appContentDiv = document.getElementById('app-content');
+            appContentDiv.innerHTML = ''; // Clear existing content
+
+            if (mode === 'admin') {
+                appContentDiv.innerHTML = `
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Admin Panel</h2>
+                    <p class="text-lg text-gray-300">Manage terms, definitions, and tags.</p>
+                    <div id="admin-form-container" class="mt-8">
+                        <form id="term-form" class="space-y-4 text-left">
+                            <div>
+                                <label for="term" class="block text-sm font-medium text-gray-300 mb-1">Term</label>
+                                <input type="text" id="term" required class="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="e.g., Photosynthesis">
+                            </div>
+                            <div>
+                                <label for="note" class="block text-sm font-medium text-gray-300 mb-1">Note (Optional)</label>
+                                <input type="text" id="note" class="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="e.g., A biology core concept">
+                            </div>
+                            <div id="definitions-container" class="space-y-4">
+                                <!-- Definition blocks will be added here -->
+                            </div>
+                            <button type="button" id="add-definition-btn" class="flex items-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Add Definition
+                            </button>
+                            <button type="submit" id="save-term-btn" class="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span id="save-btn-text">Save Term</span>
+                                <svg id="save-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </button>
+                            <p id="status-message" class="mt-4 text-center text-sm"></p>
+                        </form>
+                        <div class="mt-8 p-4 bg-gray-800 rounded-lg">
+                            <h3 class="text-xl font-semibold mb-4 text-blue-300">Import/Export Terms</h3>
+                            <div class="flex flex-col space-y-4">
+                                <div>
+                                    <label for="csv-file-input" class="block text-sm font-medium text-gray-300 mb-1">Import from CSV</label>
+                                    <input type="file" id="csv-file-input" accept=".csv" class="w-full text-white bg-gray-700 rounded-md p-2 border border-gray-600">
+                                    <button type="button" id="import-csv-btn" class="mt-2 w-full px-4 py-2 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 transition-colors">Import CSV</button>
+                                </div>
+                                <button type="button" id="export-csv-btn" class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">Export All Terms to CSV</button>
+                                <button type="button" id="clear-database-btn" class="w-full px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition-colors">Clear All Terms</button>
+                                <p id="import-status-message" class="mt-2 text-center text-sm"></p>
+                            </div>
+                        </div>
+                        <div class="mt-8 p-4 bg-gray-800 rounded-lg">
+                            <h3 class="text-xl font-semibold mb-4 text-blue-300">Existing Terms Matrix</h3>
+                            <button type="button" id="refresh-terms-btn" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700 transition-colors mb-4">Refresh Terms</button>
+                            <div class="overflow-x-auto relative shadow-md sm:rounded-lg max-h-96">
+                                <table class="w-full text-sm text-left text-gray-400">
+                                    <thead class="text-xs text-gray-200 uppercase bg-gray-700 sticky top-0">
+                                        <tr>
+                                            <th scope="col" class="py-3 px-6">Term</th>
+                                            <th scope="col" class="py-3 px-6 text-center">Definitions</th>
+                                            <th scope="col" class="py-3 px-6 text-center">Tags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="terms-matrix-body">
+                                        <!-- Terms will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                // Initialize Admin module here, passing all necessary dependencies
+                // This call is redundant if already called in onAuthStateChanged, but ensures it runs if auth state is already set.
+                initAdmin(db, auth, appId, currentUserId, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
+
+            } else if (mode === 'explorer') {
+                appContentDiv.innerHTML = `
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-300">Explorer Mode</h2>
+                    <p class="text-lg text-gray-300">Discover and interact with terms, rendered as dynamic orbs.</p>
+                    <div id="orb-display-area" class="w-full h-96 bg-gray-900 rounded-lg mt-8 mb-4">
+                        <!-- Three.js canvas will be injected here -->
+                    </div>
+                    <div class="flex justify-center">
+                        <input type="text" id="command-input" placeholder="Type commands here (e.g., 'run:', 'clear:')" class="w-full max-w-md bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                    </div>
+                `;
+                // Initialize Explorer module here, passing all necessary dependencies
+                initExplorer(db, appId, collection, query, getDocs);
+            }
+            // Ensure save button state is correct after content load
+            // This relies on auth.currentUser being updated, which happens asynchronously.
+            // The onAuthStateChanged listener will handle the final state.
+            const saveBtn = document.getElementById('save-term-btn');
+            if (saveBtn) {
+                saveBtn.disabled = !(auth.currentUser && auth.currentUser.uid);
+            }
+        }
+
+        // Event listeners for navigation buttons to switch between modes.
+        document.getElementById('adminModeBtn').addEventListener('click', () => loadModuleContent('admin'));
+        document.getElementById('explorerModeBtn').addEventListener('click', () => loadModuleContent('explorer'));
+
+        // Initialize Firebase when the window loads to ensure all DOM elements are ready.
+        window.onload = initializeFirebase;
+     
+        // Keyboard Shortcut for Admin Mode (Part of Phase 5 implementation).
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey && event.altKey && event.key === 'a') {
+                event.preventDefault(); // Prevent browser default actions (e.g., opening dev tools shortcut).
+                console.log("Ctrl+Alt+A pressed - Admin Mode toggle (conceptual)");
+                loadModuleContent('admin'); // For now, just load admin content.
+                // TODO: Play adminSound as per requirements.
+            }
         });
-    }
-
-    // --- Event Handlers ---
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function onMouseMove(event) {
-        // Calculate mouse position in normalized device coordinates (-1 to +1)
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    }
-
-    function startExplorerMode() {
-        startScreen.style.opacity = '0';
-        startScreen.style.pointerEvents = 'none';
-    }
-    
-    function handleRunCommand(event) {
-        // FIX: The code checks if the key pressed is 'Enter'
-        if (event.key === 'Enter') {
-            const command = runCommandInput.value.trim().toLowerCase();
-            if (command === 'run') {
-                startExplorerMode();
-            } else {
-                // Simple command to focus on an orb
-                const targetOrb = orbs.find(orb => orb.userData.term.toLowerCase() === command);
-                if (targetOrb) {
-                    flyToOrb(targetOrb);
-                    startExplorerMode();
-                } else {
-                    runCommandInput.value = `Error: Term "${command}" not found.`;
-                    setTimeout(() => { runCommandInput.value = ''; }, 2000);
-                }
-            }
-        }
-    }
-
-    // --- Animation & Interaction ---
-    function flyToOrb(targetOrb) {
-        const startPosition = camera.position.clone();
-        const endPosition = targetOrb.position.clone().add(new THREE.Vector3(0, 2, 8)); // Look at orb from a distance
-        
-        const startLookAt = controls.target.clone();
-        const endLookAt = targetOrb.position.clone();
-
-        new TWEEN.Tween({ t: 0 })
-            .to({ t: 1 }, 1500) // 1.5 seconds
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate(({ t }) => {
-                camera.position.lerpVectors(startPosition, endPosition, t);
-                controls.target.lerpVectors(startLookAt, endLookAt, t);
-            })
-            .start();
-    }
-    
-    function checkIntersection() {
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(orbs);
-
-        if (intersects.length > 0) {
-            if (INTERSECTED != intersects[0].object) {
-                if (INTERSECTED) {
-                    // Restore previous intersected object's material
-                    INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-                }
-                // Store new intersected object
-                INTERSECTED = intersects[0].object;
-                INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-                INTERSECTED.material.emissive.setHex(0x00ffff); // Highlight with cyan
-            }
-        } else {
-            if (INTERSECTED) {
-                // Restore previous intersected object's material
-                INTERSECTED.material.emissive.setHex(INTERSECTED.currentHex);
-            }
-            INTERSECTED = null;
-        }
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        
-        TWEEN.update(); // Update animations
-        controls.update(); // Required if enableDamping is true
-        
-        checkIntersection(); // Check for mouse hover
-
-        renderer.render(scene, camera);
-        labelRenderer.render(scene, camera);
-    }
-
-    // --- Startup Sequence ---
-    function runBootSequence() {
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 10;
-            if (progress >= 100) {
-                progress = 100;
-                clearInterval(interval);
-                setTimeout(() => {
-                    loadingScreen.style.opacity = '0';
-                    startScreen.style.opacity = '1';
-                    startScreen.style.pointerEvents = 'auto';
-                }, 500);
-            }
-            loadingBar.style.width = `${progress}%`;
-        }, 100);
-    }
-
-    // --- Start the application ---
-    init();
-    animate();
-    runBootSequence();
-
-</script>
+    </script>
+    <script>
+        // This DOMContentLoaded listener is redundant if window.onload is used for initializeFirebase
+        // and loadModuleContent is called on button clicks.
+        // Keeping it here for now but it might be removed in future iterations.
+        window.addEventListener('DOMContentLoaded', () => {
+            // No explicit call to initializeFirebase here if window.onload handles it.
+            // This script block itself is not type="module", so imports won't work here.
+            // The main logic is in the type="module" script block.
+        });
+    </script>
 </body>
 </html>
