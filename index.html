@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Main application stylesheet -->
     <link rel="stylesheet" href="css/style.css">
+    <!-- PapaParse CDN for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 </head>
 <body class="antialiased">
 
@@ -41,7 +43,7 @@
         import authState from './js/state.js'; // Import authState
         import { initAdmin } from './js/admin.js'; // Import initAdmin
         import { initExplorer } from './js/explorer.js'; // Import initExplorer
-        import Papa from 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js'; // Import PapaParse
+        // Removed: import Papa from 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js';
 
 
         // --- Firebase Configuration ---
@@ -97,7 +99,7 @@
                         const saveBtn = document.getElementById('save-term-btn');
                         if (saveBtn) saveBtn.disabled = false;
 
-                        // Initialize Admin module here, passing all necessary dependencies
+                        // Initialize Admin module here, passing all necessary dependencies, including global Papa
                         initAdmin(db, auth, appId, currentUserId, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
 
 
