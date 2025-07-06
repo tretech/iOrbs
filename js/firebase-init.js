@@ -4,7 +4,7 @@ import { getFirestore, collection, query, where, addDoc, getDocs, doc, updateDoc
 import authState from './state.js';
 import { initAdmin } from './admin.js';
 import { initExplorer } from './explorer.js';
-import Papa from 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js'; // Import PapaParse
+// Removed: import Papa from 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js';
 
 
 // Firebase should already be initialized in index.html, this file is for module-specific initialization
@@ -18,7 +18,7 @@ export function initializeFirebase(showConfirmModal) {
       console.log("Firebase initialized and user signed in:", user.uid);
       authState.update({ userId: user.uid, isAuthenticated: true });
 
-      // Pass Papa and showConfirmModal to initAdmin
+      // Pass Papa (global) and showConfirmModal to initAdmin
       initAdmin(db, auth, appId, user.uid, serverTimestamp, Papa, showConfirmModal, collection, query, where, addDoc, getDocs, doc, updateDoc, deleteDoc);
       
       // Explorer initialization is now handled within loadModuleContent in index.html
@@ -41,7 +41,7 @@ export function initializeFirebase(showConfirmModal) {
         console.error("Error during anonymous sign-in:", error);
         authState.update({ userId: 'anonymous', isAuthenticated: false });
 
-        // Pass Papa and showConfirmModal to initAdmin even for anonymous
+        // Pass Papa (global) and showConfirmModal to initAdmin even for anonymous
         initAdmin(null, null, appId, 'anonymous', () => new Date(), Papa, showConfirmModal, null, null, null, null, null, null, null);
         // Explorer initialization is now handled within loadModuleContent in index.html
         // initExplorer(null, appId, null, null, null);
